@@ -12,16 +12,20 @@ export default {
   },
   data() {
     const p = constants.QUERY_MODEL_DISPLAY_PLACEHOLDER;
+    const pn = constants.QUERY_MODEL_DISPLAY_PLACEHOLDER_NUM;
+    const ps = constants.QUERY_MODEL_DISPLAY_PLACEHOLDER_STR;
+    const pb = constants.QUERY_MODEL_DISPLAY_PLACEHOLDER_BOOL;
 
     return {
       models: [
         `SELECT ${p}`,
         `SELECT ${p} FROM ${p}`,
         `SELECT ${p} FROM (SELECT ${p} FROM ${p})`,
-        `SELECT ${p} FROM ${p} WHERE ${p} = '1'`,
-        `SELECT ${p} FROM ${p} WHERE ${p} IN (${p})`,
+        `SELECT ${p} FROM ${p} WHERE ${p} = ${ps}`,
+        `SELECT ${p} FROM ${p} WHERE ${p} != ${pb}`,
+        `SELECT ${p} FROM ${p} WHERE ${p} IN (${pn})`,
         `SELECT ${p} FROM ${p} WHERE ${p} IN (SELECT ${p} FROM ${p})`,
-        `SELECT ${p} FROM ${p} WHERE ${p} IN ((SELECT ${p} FROM ${p}), 1)`,
+        `SELECT ${p} FROM ${p} WHERE ${p} IN ((SELECT ${p} FROM ${p}), ${pn})`,
         `SELECT ${p} FROM ${p} WHERE ${p} IN (SELECT ${p} FROM (SELECT ${p} FROM (SELECT ${p} FROM ${p})))`,
         `SELECT ${p} FROM ${p} WHERE ${p} IN (SELECT ${p} FROM (SELECT ${p} FROM (SELECT ${p} FROM (SELECT ${p} FROM (SELECT ${p} FROM (SELECT ${p} FROM ${p}))))))`,
       ],

@@ -7,6 +7,8 @@ import { getInputListOnChange } from "./handlerHelpers";
 
 const { EXPR_TYPE, SUPPORTED_OPERATORS, QUERY_TYPE } = constants;
 
+const validValueTypes = [EXPR_TYPE.NUMBER, EXPR_TYPE.VALUE_STR, EXPR_TYPE.BOOL];
+
 const select_from = (from, children, nest) => {
   children.push(generateSpanChild("FROM"));
 
@@ -46,9 +48,7 @@ const select_from = (from, children, nest) => {
   }
 };
 
-const where_eq = (operator, left, right, children, nest) => {
-  const validValueTypes = [EXPR_TYPE.NUMBER, EXPR_TYPE.VALUE_STR];
-
+const where_cmp = (operator, left, right, children, nest) => {
   const leftIsColumn = left.type === EXPR_TYPE.COLUMN_REF;
   const rightIsColumn = right.type === EXPR_TYPE.COLUMN_REF;
 
@@ -131,11 +131,11 @@ const where_in = (operator, left, right, children, nest) => {
         children.push(generateSpanChild(", ", { marginRight: "0px" }));
       } else {
         invariant(
-          item.type === EXPR_TYPE.NUMBER || item.type === EXPR_TYPE.VALUE_STR,
+          validValueTypes.includes(item.type),
           `Unsupported right value type for WHERE .. IN (..) call: ${item.type}`
         );
 
-        children.push(generateSpanChild(item.value, { marginRight: "0px" }));
+        children.push(generateInputChild());
         children.push(generateSpanChild(", ", { marginRight: "0px" }));
       }
     });
@@ -147,9 +147,15 @@ const where_in = (operator, left, right, children, nest) => {
       children.push(generateSpanChild(")"));
     }
   } else {
+    invariant(
+      right.value.every((expr) => validValueTypes.includes(expr.type)),
+      'Expression list for "in" operator contains one or more values that are not strings, numbers, or booleans'
+    );
     children.push(generateInputChild());
   }
 };
+
+const cmpOperators = ["=", "!=", "<>", ">", "<", "<=", ">="];
 
 const select_where = (where, children, nest) => {
   children.push(generateSpanChild("WHERE"));
@@ -167,8 +173,8 @@ const select_where = (where, children, nest) => {
     `Unsupported WHERE expression operator: ${operator}`
   );
 
-  if (operator === "=") {
-    where_eq(operator, left, right, children, nest);
+  if (cmpOperators.includes(operator)) {
+    where_cmp(operator, left, right, children, nest);
   } else if (operator === "IN") {
     where_in(operator, left, right, children, nest);
   }
