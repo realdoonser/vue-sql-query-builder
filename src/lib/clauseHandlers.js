@@ -60,7 +60,7 @@ const where_cmp = (operator, left, right, children, nest) => {
 
   invariant(
     expressionIsValid,
-    `Unsupported WHERE binary expression '=' type pair: Left = ${left.type}, Right = ${right.type}`
+    `Unsupported WHERE binary expression '${operator}' type pair: Left = ${left.type}, Right = ${right.type}`
   );
 
   const leftProperty = leftIsColumn ? "column" : "value";
@@ -68,7 +68,7 @@ const where_cmp = (operator, left, right, children, nest) => {
     generateInputChild({
       onChange: (e) => {
         left[leftProperty] = e.target.value;
-        console.log(`where eq left ${nest} updated`);
+        console.log(`where cmp ${operator} left ${nest} updated`);
       },
     })
   );
@@ -80,7 +80,7 @@ const where_cmp = (operator, left, right, children, nest) => {
     generateInputChild({
       onChange: (e) => {
         right[rightProperty] = e.target.value;
-        console.log(`where eq right ${nest} updated`);
+        console.log(`where cmp ${operator} right ${nest} updated`);
       },
     })
   );
@@ -151,7 +151,22 @@ const where_in = (operator, left, right, children, nest) => {
       right.value.every((expr) => validValueTypes.includes(expr.type)),
       'Expression list for "in" operator contains one or more values that are not strings, numbers, or booleans'
     );
-    children.push(generateInputChild());
+    children.push(
+      generateInputChild({
+        onChange: getInputListOnChange(
+          `where in right, nest ${nest}`,
+          right.value,
+          {
+            db: null,
+            table: null,
+            as: null,
+          },
+          (list, i, value) => {
+            list[i].table = value;
+          }
+        ),
+      })
+    );
   }
 };
 
