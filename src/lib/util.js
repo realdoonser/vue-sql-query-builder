@@ -4,24 +4,21 @@ import { constants } from "../config/constants";
 
 export const parser = new Parser();
 
+// note that bool must be parsed last, since its display placeholder '...' has no
+// empty character after like the other value types do, so if its placeholders
+// were to be replaced before the others, it would overwrite all other remaining
+// placeholders and leave empty unicode character remnants over
+const valueTypes = ["COL_REF", "NUM", "STR", "BOOL"];
+
 const parseModelString = (str) => {
-  return str
-    .replaceAll(
-      constants.QUERY_MODEL_DISPLAY_PLACEHOLDER,
-      constants.QUERY_MODEL_PARSE_PLACEHOLDER
-    )
-    .replaceAll(
-      constants.QUERY_MODEL_DISPLAY_PLACEHOLDER_NUM,
-      constants.QUERY_MODEL_PARSE_PLACEHOLDER_NUM
-    )
-    .replaceAll(
-      constants.QUERY_MODEL_DISPLAY_PLACEHOLDER_STR,
-      constants.QUERY_MODEL_PARSE_PLACEHOLDER_STR
-    )
-    .replaceAll(
-      constants.QUERY_MODEL_DISPLAY_PLACEHOLDER_BOOL,
-      constants.QUERY_MODEL_PARSE_PLACEHOLDER_BOOL
-    );
+  return valueTypes.reduce(
+    (returnStr, nextValueType) =>
+      returnStr.replaceAll(
+        constants.QUERY_MODEL.DISPLAY_PLACEHOLDER[nextValueType],
+        constants.QUERY_MODEL.PARSE_PLACEHOLDER[nextValueType]
+      ),
+    str
+  );
 };
 
 const generateSpanChild = (text, style, newlineBefore, newlineAfter) => {
@@ -34,8 +31,15 @@ const generateSpanChild = (text, style, newlineBefore, newlineAfter) => {
   );
 };
 
-const generateInputChild = ({ onChange } = { onChange: () => {} }) => {
-  return (h, key) => <input key={key} on-change={onChange}></input>;
+const generateInputChild = (
+  { onChange = () => {}, onBlur = () => {} } = {
+    onChange: () => {},
+    onBlur: () => {},
+  }
+) => {
+  return (h, key) => (
+    <input key={key} on-change={onChange} on-blur={onBlur}></input>
+  );
 };
 
 const isNested = (arr) => {
@@ -53,4 +57,31 @@ const isNested = (arr) => {
   );
 };
 
-export { parseModelString, generateInputChild, generateSpanChild, isNested };
+const parseSelectValue = (value) => {
+  return parser.astify(`SELECT ${value}`);
+};
+
+const getASTValue = (value) => {
+  return parseSelectValue(value).columns[0].expr;
+};
+
+const getASTTable = (value) => {
+  return parser.astify(`SELECT * FROM ${value}`).from;
+};
+
+const assignAST = (obj, ast) => {
+  for (const prop in obj) {
+    delete obj[prop];
+  }
+  Object.assign(obj, ast);
+};
+
+export {
+  parseModelString,
+  generateInputChild,
+  generateSpanChild,
+  isNested,
+  getASTValue,
+  getASTTable,
+  assignAST,
+};

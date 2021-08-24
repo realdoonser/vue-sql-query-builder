@@ -11,22 +11,28 @@ export default {
     KeywordButton,
   },
   data() {
-    const p = constants.QUERY_MODEL_DISPLAY_PLACEHOLDER;
-    const pn = constants.QUERY_MODEL_DISPLAY_PLACEHOLDER_NUM;
-    const ps = constants.QUERY_MODEL_DISPLAY_PLACEHOLDER_STR;
-    const pb = constants.QUERY_MODEL_DISPLAY_PLACEHOLDER_BOOL;
+    // short names to reduce model length
+    const {
+      COL_REF: c,
+      NUM: n,
+      STR: s,
+      BOOL: b,
+    } = constants.QUERY_MODEL.DISPLAY_PLACEHOLDER;
 
     return {
       models: [
-        `SELECT ${p}`,
-        `SELECT ${p} FROM ${p}`,
-        `SELECT ${p} FROM (SELECT ${p} FROM ${p})`,
-        `SELECT ${p} FROM ${p} WHERE ${p} = ${ps}`,
-        `SELECT ${p} FROM ${p} WHERE ${p} != ${pb}`,
-        `SELECT ${p} FROM ${p} WHERE ${p} IN (${pn})`,
-        `SELECT ${p} FROM ${p} WHERE ${p} IN (SELECT ${p} FROM ${p})`,
-        `SELECT ${p} FROM ${p} WHERE ${p} IN ((SELECT ${p} FROM ${p}), ${pn})`,
-        `SELECT ${p} FROM ${p} WHERE ${p} IN (SELECT ${p} FROM ${p} WHERE ${p} IN (SELECT ${p} FROM ${p} WHERE ${p} IN (SELECT ${p} FROM ${p} WHERE ${p} IN (SELECT ${p} FROM ${p} WHERE ${p} IN (${pn})))))`,
+        `SELECT ${c}`,
+        `SELECT ${c} FROM ${c}`,
+        `SELECT ${c} FROM (SELECT ${c} FROM ${c})`,
+        `SELECT ${c} FROM ${c} WHERE (NOT ${c})`,
+        `SELECT ${c} FROM ${c} WHERE true`,
+        `SELECT ${c} FROM ${c} WHERE ${c} = ${s}`,
+        `SELECT ${c} FROM ${c} WHERE ${c} != ${b}`,
+        `SELECT ${c} FROM ${c} WHERE ${c} = ${s} AND ${c} != ${s} OR ${c} = (NOT ${c})`,
+        `SELECT ${c} FROM ${c} WHERE ${c} IN (${n})`,
+        `SELECT ${c} FROM ${c} WHERE ${c} IN (SELECT ${c} FROM ${c})`,
+        `SELECT ${c} FROM ${c} WHERE ${c} IN ((SELECT ${c} FROM ${c}), ${n})`,
+        `SELECT ${c} FROM ${c} WHERE ${c} IN (SELECT ${c} FROM ${c} WHERE ${c} IN (SELECT ${c} FROM ${c} WHERE ${c} IN (SELECT ${c} FROM ${c} WHERE ${c} IN (SELECT ${c} FROM ${c} WHERE ${c} IN (${n})))))`,
       ],
       queryObj: null,
       queryComponent: null,
@@ -43,12 +49,12 @@ export default {
           type: "parse-error",
           text: "There was a problem parsing model SQL.",
         };
+        console.error(err);
       }
     },
   },
   watch: {
     queryObj() {
-      console.log("fired");
       this.queryComponent = generateQueryComponent(this.queryObj);
     },
   },

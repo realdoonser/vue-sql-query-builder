@@ -1,9 +1,13 @@
 /* eslint-disable no-unused-vars */
 import invariant from "invariant";
 import { clauseHandlers } from "./clauseHandlers";
-import { generateSpanChild, generateInputChild } from "./util";
+import {
+  generateSpanChild,
+  generateInputChild,
+  getASTValue,
+  assignAST,
+} from "./util";
 import { constants } from "../config/constants";
-import { getInputListOnChange } from "./handlerHelpers";
 
 const { QUERY_TYPE, CLAUSE_TYPE, EXPR_TYPE } = constants;
 
@@ -20,23 +24,10 @@ const select = (queryObj, children, nest) => {
   children.push(generateSpanChild("SELECT"));
   children.push(
     generateInputChild({
-      onChange: getInputListOnChange(
-        `select columns, nest ${nest}`,
-        cols,
-        () => {
-          return {
-            expr: {
-              type: EXPR_TYPE.COLUMN_REF,
-              table: null,
-              column: null,
-            },
-            as: null,
-          };
-        },
-        (list, i, value) => {
-          list[i].expr.column = value;
-        }
-      ),
+      onChange: (e) => {
+        assignAST(queryObj, getASTValue(e.target.value));
+        console.log(`select columns, nest ${nest} updated`);
+      },
     })
   );
 

@@ -1,18 +1,22 @@
 const constants = {
-  QUERY_MODEL_DISPLAY_PLACEHOLDER: "...\u0000",
-  QUERY_MODEL_PARSE_PLACEHOLDER: "__PLACEHOLDER",
-
-  QUERY_MODEL_DISPLAY_PLACEHOLDER_NUM: "...\uFEFF",
-  QUERY_MODEL_PARSE_PLACEHOLDER_NUM: "0",
-
-  QUERY_MODEL_DISPLAY_PLACEHOLDER_STR: "...\u2028",
-  QUERY_MODEL_PARSE_PLACEHOLDER_STR: "'a'",
-
-  QUERY_MODEL_DISPLAY_PLACEHOLDER_BOOL: "...",
-  QUERY_MODEL_PARSE_PLACEHOLDER_BOOL: "true",
+  QUERY_MODEL: {
+    DISPLAY_PLACEHOLDER: {
+      COL_REF: "...\u0000",
+      NUM: "...\uFEFF",
+      STR: "...\u2028",
+      BOOL: "...",
+    },
+    PARSE_PLACEHOLDER: {
+      COL_REF: "col",
+      NUM: "0",
+      STR: "'a'",
+      BOOL: "true",
+    },
+  },
 
   EXPR_TYPE: {
     BINARY_EXPR: "binary_expr",
+    UNARY_EXPR: "unary_expr",
     COLUMN_REF: "column_ref",
     EXPR_LIST: "expr_list",
     NUMBER: "number",
@@ -32,7 +36,7 @@ const constants = {
 
   SUPPORTED_OPERATORS: {
     SELECT: {
-      WHERE: ["IN", "=", "!=", "<>", ">", "<", "<=", ">="],
+      WHERE: ["IN", "=", "!=", "<>", ">", "<", "<=", ">=", "AND", "OR", "NOT"],
     },
   },
 };

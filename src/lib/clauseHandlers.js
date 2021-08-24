@@ -1,13 +1,24 @@
 /* eslint-disable no-unused-vars */
 import invariant from "invariant";
 import { generateQueryComponent } from "./queryHandlers";
-import { isNested, generateSpanChild, generateInputChild } from "./util";
+import {
+  isNested,
+  generateSpanChild,
+  generateInputChild,
+  getASTValue,
+  getASTTable,
+  assignAST,
+} from "./util";
 import { constants } from "../config/constants";
-import { getInputListOnChange, coerceValueToType } from "./handlerHelpers";
 
 const { EXPR_TYPE, SUPPORTED_OPERATORS, QUERY_TYPE } = constants;
 
-const validValueTypes = [EXPR_TYPE.NUMBER, EXPR_TYPE.VALUE_STR, EXPR_TYPE.BOOL];
+const validValueTypes = [
+  EXPR_TYPE.NUMBER,
+  EXPR_TYPE.VALUE_STR,
+  EXPR_TYPE.BOOL,
+  EXPR_TYPE.UNARY_EXPR,
+];
 
 const select_from = (from, children, nest) => {
   children.push(generateSpanChild("FROM"));
@@ -31,23 +42,46 @@ const select_from = (from, children, nest) => {
     // not nested
     children.push(
       generateInputChild({
-        onChange: getInputListOnChange(
-          `select from, nest ${nest}`,
-          from,
-          () => {
-            return {
-              db: null,
-              table: null,
-              as: null,
-            };
-          },
-          (list, i, value) => {
-            list[i].table = value;
-          }
-        ),
+        onChange: (e) => {
+          assignAST(from, getASTTable(e.target.value));
+          console.log(`select from, nest ${nest}`);
+        },
       })
     );
   }
+};
+
+const unary_op = (operator, value, children, nest) => {
+  const isColumnRef = value.type === EXPR_TYPE.COLUMN_REF;
+  const expressionIsValid =
+    isColumnRef ||
+    validValueTypes.some((validType) => value.type === validType);
+
+  invariant(
+    expressionIsValid,
+    `Unsupported unary expression type ${value.type}`
+  );
+
+  children.push(generateSpanChild(operator));
+  children.push(
+    generateInputChild({
+      onChange: (e) => {
+        const astValue = getASTValue(e.target.value);
+
+        if (
+          astValue.type !== EXPR_TYPE.COLUMN_REF &&
+          !validValueTypes.includes(astValue.type)
+        ) {
+          throw new Error(
+            `Invalid type ${astValue.type} for value ${value} in 'unary op nest ${nest}'`
+          );
+        }
+        value.expr = astValue;
+
+        console.log(`unary op nest ${nest} updated`);
+      },
+    })
+  );
 };
 
 const where_cmp = (operator, left, right, children, nest) => {
@@ -65,11 +99,16 @@ const where_cmp = (operator, left, right, children, nest) => {
     `Unsupported WHERE binary expression '${operator}' type pair: Left = ${left.type}, Right = ${right.type}`
   );
 
-  const leftProperty = leftIsColumn ? "column" : "value";
+  let leftToAssign = left;
+  if (left.type === EXPR_TYPE.UNARY_EXPR) {
+    children.push(generateSpanChild(left.operator));
+    leftToAssign = left.expr;
+  }
+
   children.push(
     generateInputChild({
       onChange: (e) => {
-        left[leftProperty] = e.target.value;
+        assignAST(leftToAssign, getASTValue(e.target.value));
         console.log(`where cmp ${operator} left ${nest} updated`);
       },
     })
@@ -77,15 +116,34 @@ const where_cmp = (operator, left, right, children, nest) => {
 
   children.push(generateSpanChild(operator));
 
-  const rightProperty = rightIsColumn ? "column" : "value";
+  let rightToAssign = right;
+  if (right.type === EXPR_TYPE.UNARY_EXPR) {
+    children.push(generateSpanChild(right.operator));
+    rightToAssign = right.expr;
+  }
+
   children.push(
     generateInputChild({
       onChange: (e) => {
-        right[rightProperty] = e.target.value;
+        assignAST(rightToAssign, getASTValue(e.target.value));
         console.log(`where cmp ${operator} right ${nest} updated`);
       },
     })
   );
+};
+
+const where_log = (operator, left, right, children, nest) => {
+  const expressionIsValid =
+    left.type === EXPR_TYPE.BINARY_EXPR && right.type === EXPR_TYPE.BINARY_EXPR;
+
+  invariant(
+    expressionIsValid,
+    `Unsupported logical operator ${operator} type pair: ${left.type} ${operator} ${right.type}`
+  );
+
+  select_where(left, children, nest, false);
+  children.push(generateSpanChild(operator));
+  select_where(right, children, nest, false);
 };
 
 const where_in = (operator, left, right, children, nest) => {
@@ -100,7 +158,7 @@ const where_in = (operator, left, right, children, nest) => {
   children.push(
     generateInputChild({
       onChange: (e) => {
-        left.column = e.target.value;
+        assignAST(left, getASTValue(e.target.value));
         console.log(`where in left ${nest} updated`);
       },
     })
@@ -141,32 +199,15 @@ const where_in = (operator, left, right, children, nest) => {
         children.push(
           generateInputChild({
             onChange: (e) => {
-              const value = coerceValueToType(
-                e.target.value,
-                `where in right nest ${nest} index ${index}`
-              );
+              const astValue = getASTValue(e.target.value);
 
-              right.value[index] = {
-                type: null,
-                value: null,
-              };
-
-              switch (typeof value) {
-                case "string":
-                  right.value[index].type = EXPR_TYPE.VALUE_STR;
-                  break;
-                case "number":
-                  right.value[index].type = EXPR_TYPE.NUMBER;
-                  break;
-                case "boolean":
-                  right.value[index].type = EXPR_TYPE.BOOL;
-                  break;
-                default:
-                  throw new Error(
-                    `invalid type for value in 'where in right, nest ${nest}': ${typeof value}`
-                  );
+              if (!validValueTypes.includes(astValue.type)) {
+                throw new Error(
+                  `Invalid type ${astValue.type} for value ${e.target.value} in 'where in right, nest ${nest}'`
+                );
               }
-              right.value[index].value = value;
+
+              right.value[index] = astValue;
 
               console.log(`where in right nest ${nest} index ${index} updated`);
             },
@@ -189,67 +230,81 @@ const where_in = (operator, left, right, children, nest) => {
     );
     children.push(
       generateInputChild({
-        onChange: getInputListOnChange(
-          `where in right, nest ${nest}`,
-          right.value,
-          () => {
-            return {
-              type: undefined,
-              value: undefined,
-            };
-          },
-          (list, i, value) => {
-            if (value === "") {
-              return;
-            }
-
-            value = coerceValueToType(value, `where in right, nest ${nest}`);
-
-            switch (typeof value) {
-              case "string":
-                list[i].type = EXPR_TYPE.VALUE_STR;
-                break;
-              case "number":
-                list[i].type = EXPR_TYPE.NUMBER;
-                break;
-              case "boolean":
-                list[i].type = EXPR_TYPE.BOOL;
-                break;
-              default:
-                throw new Error(
-                  `invalid type for value in 'where in right, nest ${nest}': ${typeof value}`
-                );
-            }
-            list[i].value = value;
-          }
-        ),
+        onChange: (e) => {
+          assignAST(right, getASTValue(e.target.value));
+          console.log(`where in right, nest ${nest} updated`);
+        },
       })
     );
   }
 };
 
-const cmpOperators = ["=", "!=", "<>", ">", "<", "<=", ">="];
+const clause_value = (value, children, nest) => {
+  children.push(
+    generateInputChild({
+      onChange: (e) => {
+        assignAST(value, getASTValue(e.target.value));
+        console.log(`clause value nest ${nest} updated`);
+      },
+    })
+  );
+};
 
-const select_where = (where, children, nest) => {
-  children.push(generateSpanChild("WHERE"));
+const cmpOperators = {
+  "=": true,
+  "!=": true,
+  "<>": true,
+  ">": true,
+  "<": true,
+  "<=": true,
+  ">=": true,
+};
+const logicalOperators = { AND: true, OR: true, NOT: true };
 
-  const { operator, type, left, right } = where;
+const select_where = (where, children, nest, pushWhere = true) => {
+  if (pushWhere) {
+    children.push(generateSpanChild("WHERE"));
+  }
+
+  const { type } = where;
 
   invariant(
-    type === EXPR_TYPE.BINARY_EXPR,
+    type === EXPR_TYPE.BINARY_EXPR || validValueTypes.includes(type),
     `Unsupported WHERE expression type: ${type}`
   );
-  invariant(
-    SUPPORTED_OPERATORS.SELECT.WHERE.some(
-      (supportedOp) => supportedOp === operator
-    ),
-    `Unsupported WHERE expression operator: ${operator}`
-  );
 
-  if (cmpOperators.includes(operator)) {
-    where_cmp(operator, left, right, children, nest);
-  } else if (operator === "IN") {
-    where_in(operator, left, right, children, nest);
+  if (type !== EXPR_TYPE.BINARY_EXPR && type !== EXPR_TYPE.UNARY_EXPR) {
+    clause_value(where, children, nest);
+  } else {
+    // certainly an expression with an operator
+
+    // ensure alphabetic operators are always upper-case by convention
+    where.operator = where.operator.toUpperCase();
+
+    const { operator } = where;
+
+    invariant(
+      SUPPORTED_OPERATORS.SELECT.WHERE.some(
+        (supportedOp) => supportedOp === operator
+      ),
+      `Unsupported WHERE expression operator: ${operator}`
+    );
+
+    if (type === EXPR_TYPE.BINARY_EXPR) {
+      const { left, right } = where;
+      if (cmpOperators[operator]) {
+        where_cmp(operator, left, right, children, nest);
+      } else if (logicalOperators[operator]) {
+        where_log(operator, left, right, children, nest);
+      } else if (operator === "IN") {
+        where_in(operator, left, right, children, nest);
+      } else {
+        console.error(`unhandled operator for SELECT ... WHERE: ${operator}`);
+      }
+    } else if (type === EXPR_TYPE.UNARY_EXPR) {
+      // NOT is the only unary operator in SUPPORTED_OPERATORS, so operator === 'NOT' is surely true
+      unary_op(operator, where, children, nest);
+    }
   }
 };
 
