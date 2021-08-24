@@ -3,7 +3,7 @@ import invariant from "invariant";
 import { generateQueryComponent } from "./queryHandlers";
 import { isNested, generateSpanChild, generateInputChild } from "./util";
 import { constants } from "../config/constants";
-import { getInputListOnChange } from "./handlerHelpers";
+import { getInputListOnChange, coerceValueToType } from "./handlerHelpers";
 
 const { EXPR_TYPE, SUPPORTED_OPERATORS, QUERY_TYPE } = constants;
 
@@ -34,10 +34,12 @@ const select_from = (from, children, nest) => {
         onChange: getInputListOnChange(
           `select from, nest ${nest}`,
           from,
-          {
-            db: null,
-            table: null,
-            as: null,
+          () => {
+            return {
+              db: null,
+              table: null,
+              as: null,
+            };
           },
           (list, i, value) => {
             list[i].table = value;
@@ -99,6 +101,7 @@ const where_in = (operator, left, right, children, nest) => {
     generateInputChild({
       onChange: (e) => {
         left.column = e.target.value;
+        console.log(`where in left ${nest} updated`);
       },
     })
   );
@@ -113,7 +116,7 @@ const where_in = (operator, left, right, children, nest) => {
       hasOuterParen = true;
     }
 
-    right.value.forEach((item) => {
+    right.value.forEach((item, index) => {
       if (isNested(item)) {
         const subqueryComponentArr = right.value
           .map((item) => {
@@ -135,7 +138,40 @@ const where_in = (operator, left, right, children, nest) => {
           `Unsupported right value type for WHERE .. IN (..) call: ${item.type}`
         );
 
-        children.push(generateInputChild());
+        children.push(
+          generateInputChild({
+            onChange: (e) => {
+              const value = coerceValueToType(
+                e.target.value,
+                `where in right nest ${nest} index ${index}`
+              );
+
+              right.value[index] = {
+                type: null,
+                value: null,
+              };
+
+              switch (typeof value) {
+                case "string":
+                  right.value[index].type = EXPR_TYPE.VALUE_STR;
+                  break;
+                case "number":
+                  right.value[index].type = EXPR_TYPE.NUMBER;
+                  break;
+                case "boolean":
+                  right.value[index].type = EXPR_TYPE.BOOL;
+                  break;
+                default:
+                  throw new Error(
+                    `invalid type for value in 'where in right, nest ${nest}': ${typeof value}`
+                  );
+              }
+              right.value[index].value = value;
+
+              console.log(`where in right nest ${nest} index ${index} updated`);
+            },
+          })
+        );
         children.push(generateSpanChild(", ", { marginRight: "0px" }));
       }
     });
@@ -156,13 +192,35 @@ const where_in = (operator, left, right, children, nest) => {
         onChange: getInputListOnChange(
           `where in right, nest ${nest}`,
           right.value,
-          {
-            db: null,
-            table: null,
-            as: null,
+          () => {
+            return {
+              type: undefined,
+              value: undefined,
+            };
           },
           (list, i, value) => {
-            list[i].table = value;
+            if (value === "") {
+              return;
+            }
+
+            value = coerceValueToType(value, `where in right, nest ${nest}`);
+
+            switch (typeof value) {
+              case "string":
+                list[i].type = EXPR_TYPE.VALUE_STR;
+                break;
+              case "number":
+                list[i].type = EXPR_TYPE.NUMBER;
+                break;
+              case "boolean":
+                list[i].type = EXPR_TYPE.BOOL;
+                break;
+              default:
+                throw new Error(
+                  `invalid type for value in 'where in right, nest ${nest}': ${typeof value}`
+                );
+            }
+            list[i].value = value;
           }
         ),
       })

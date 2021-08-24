@@ -24,6 +24,7 @@ export default {
         `SELECT ${p} FROM ${p} WHERE ${p} = ${ps}`,
         `SELECT ${p} FROM ${p} WHERE ${p} != ${pb}`,
         `SELECT ${p} FROM ${p} WHERE ${p} IN (${pn})`,
+        `SELECT ${p} FROM ${p} WHERE ${p} IN (1, '2', 'three', false)`,
         `SELECT ${p} FROM ${p} WHERE ${p} IN (SELECT ${p} FROM ${p})`,
         `SELECT ${p} FROM ${p} WHERE ${p} IN ((SELECT ${p} FROM ${p}), ${pn})`,
         `SELECT ${p} FROM ${p} WHERE ${p} IN (SELECT ${p} FROM (SELECT ${p} FROM (SELECT ${p} FROM ${p})))`,

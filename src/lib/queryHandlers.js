@@ -23,13 +23,15 @@ const select = (queryObj, children, nest) => {
       onChange: getInputListOnChange(
         `select columns, nest ${nest}`,
         cols,
-        {
-          expr: {
-            type: EXPR_TYPE.COLUMN_REF,
-            table: null,
-            column: null,
-          },
-          as: null,
+        () => {
+          return {
+            expr: {
+              type: EXPR_TYPE.COLUMN_REF,
+              table: null,
+              column: null,
+            },
+            as: null,
+          };
         },
         (list, i, value) => {
           list[i].expr.column = value;
