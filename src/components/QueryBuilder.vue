@@ -48,7 +48,7 @@ export default {
           this.queryObj = newQueryObj;
         } else {
           this.setNestedAST(newQueryObj);
-          // this.setNestedAST could have only deep updated, but we want to trigger
+          // this.setNestedAST should have only deep updated queryObj, but we want to trigger
           // a recomputation of this.queryComponent, so we change the queryObj
           // reference to a new object with copied properties
           this.queryObj = Object.assign({}, this.queryObj);
