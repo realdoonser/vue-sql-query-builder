@@ -111,8 +111,18 @@ export default {
             on-click={() => {
               this.setNestedAST = null;
             }}
+            style={{
+              marginRight: "5px",
+            }}
           >
             Clear Selected Input
+          </button>
+          <button
+            on-click={() => {
+              console.log(parser.sqlify(this.queryObj));
+            }}
+          >
+            Print Query
           </button>
         </div>
 
