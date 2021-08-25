@@ -50,6 +50,37 @@ const generateInputChild = (
   );
 };
 
+const getOnFocus = (component, setNestedAST) => (e) => {
+  component.setNestedAST = setNestedAST;
+  console.log("did focus", e.target);
+};
+
+const getOnBlur = (component, setNestedAST) => (e) => {
+  // blur on a timeout, otherwise clicking a model button after focusing an input
+  // would cause the input to be blurred before the model button onClick fires,
+  // which means that by the time the onClick fires to nest the model into the
+  // current input, setNestedAST would already be null in the case with no timeout
+  setTimeout(() => {
+    if (component.setNestedAST === setNestedAST) {
+      component.setNestedAST = null;
+      console.log("did blur", e.target);
+    } else {
+      console.log(
+        "tried to blur",
+        e.target,
+        "but something else already overwrote setNestedAST"
+      );
+    }
+  }, 500);
+};
+
+const getOnFocusAndOnBlur = (component, setNestedAST) => {
+  return {
+    onFocus: getOnFocus(component, setNestedAST),
+    onBlur: getOnBlur(component, setNestedAST),
+  };
+};
+
 const isNested = (arr) => {
   if (typeof arr !== "object") {
     throw new Error(`Non-object parameter passed to isNested: ${arr}`);
@@ -92,4 +123,7 @@ export {
   getASTValue,
   getASTTable,
   assignAST,
+  getOnFocus,
+  getOnBlur,
+  getOnFocusAndOnBlur,
 };

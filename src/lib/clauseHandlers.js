@@ -8,6 +8,7 @@ import {
   getASTValue,
   getASTTable,
   assignAST,
+  getOnFocusAndOnBlur,
 } from "./util";
 import { constants } from "../config/constants";
 
@@ -46,19 +47,16 @@ const select_from = (from, select, component, children, nest) => {
           assignAST(from, getASTTable(e.target.value));
           console.log(`select from, nest ${nest}`);
         },
-        onFocus: () => {
-          component.setAST = (newQueryObj) => {
-            console.log(select);
-            select.from = [
-              {
-                as: null,
-                expr: {
-                  ast: newQueryObj,
-                },
+        ...getOnFocusAndOnBlur(component, (newQueryObj) => {
+          select.from = [
+            {
+              as: null,
+              expr: {
+                ast: newQueryObj,
               },
-            ];
-          };
-        },
+            },
+          ];
+        }),
       })
     );
   }

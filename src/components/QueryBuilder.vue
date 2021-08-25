@@ -36,7 +36,7 @@ export default {
       ],
       queryObj: null,
       queryComponent: null,
-      setAST: null,
+      setNestedAST: null,
       error: null,
     };
   },
@@ -44,15 +44,15 @@ export default {
     onModelClick(model) {
       try {
         const newQueryObj = parser.astify(parseModelString(model));
-        if (this.setAST === null) {
+        if (this.setNestedAST === null) {
           this.queryObj = newQueryObj;
         } else {
-          this.setAST(newQueryObj);
-          // this.setAST could have only deep updated, but we want to trigger
+          this.setNestedAST(newQueryObj);
+          // this.setNestedAST could have only deep updated, but we want to trigger
           // a recomputation of this.queryComponent, so we change the queryObj
           // reference to a new object with copied properties
           this.queryObj = Object.assign({}, this.queryObj);
-          this.setAST = null;
+          this.setNestedAST = null;
         }
         this.error = null;
       } catch (err) {
@@ -99,7 +99,7 @@ export default {
           <button
             on-click={() => {
               console.log("queryObj", this.queryObj);
-              console.log("setAST", this.setAST);
+              console.log("setNestedAST", this.setNestedAST);
             }}
             style={{
               marginRight: "5px",
@@ -109,7 +109,7 @@ export default {
           </button>
           <button
             on-click={() => {
-              this.setAST = null;
+              this.setNestedAST = null;
             }}
           >
             Clear Selected Input
