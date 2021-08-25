@@ -152,9 +152,9 @@ const where_log = (operator, left, right, component, children, nest) => {
     `Unsupported logical operator ${operator} type pair: ${left.type} ${operator} ${right.type}`
   );
 
-  select_where(left, children, nest, false);
+  select_where(left, component, children, nest, false);
   children.push(generateSpanChild(operator));
-  select_where(right, children, nest, false);
+  select_where(right, children, children, nest, false);
 };
 
 const where_in = (operator, left, right, component, children, nest) => {
