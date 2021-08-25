@@ -4,8 +4,8 @@ import { clauseHandlers } from "./clauseHandlers";
 import {
   generateSpanChild,
   generateInputChild,
-  getASTValue,
   assignAST,
+  getASTArr,
 } from "./util";
 import { constants } from "../config/constants";
 
@@ -25,7 +25,7 @@ const select = (queryObj, component, children, nest) => {
   children.push(
     generateInputChild({
       onChange: (e) => {
-        assignAST(queryObj, getASTValue(e.target.value));
+        assignAST(cols, getASTArr(e.target.value));
         console.log(`select columns, nest ${nest} updated`);
       },
     })

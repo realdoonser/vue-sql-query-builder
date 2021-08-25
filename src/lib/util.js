@@ -104,6 +104,10 @@ const getASTValue = (value) => {
   return parseSelectValue(value).columns[0].expr;
 };
 
+const getASTArr = (value) => {
+  return parseSelectValue(value).columns;
+};
+
 const getASTTable = (value) => {
   return parser.astify(`SELECT * FROM ${value}`).from;
 };
@@ -121,6 +125,7 @@ export {
   generateSpanChild,
   isNested,
   getASTValue,
+  getASTArr,
   getASTTable,
   assignAST,
   getOnFocus,
