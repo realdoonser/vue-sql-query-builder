@@ -20,7 +20,7 @@ const validValueTypes = [
   EXPR_TYPE.UNARY_EXPR,
 ];
 
-const select_from = (from, children, nest) => {
+const select_from = (from, select, component, children, nest) => {
   children.push(generateSpanChild("FROM"));
 
   if (isNested(from)) {
@@ -28,7 +28,7 @@ const select_from = (from, children, nest) => {
     const subqueryComponentArr = from
       .map((item) => {
         return item.expr?.ast
-          ? generateQueryComponent(item.expr.ast, nest + 1)
+          ? generateQueryComponent(item.expr.ast, component, nest + 1)
           : undefined;
       })
       .filter((item) => item !== undefined);
@@ -46,12 +46,25 @@ const select_from = (from, children, nest) => {
           assignAST(from, getASTTable(e.target.value));
           console.log(`select from, nest ${nest}`);
         },
+        onFocus: () => {
+          component.setAST = (newQueryObj) => {
+            console.log(select);
+            select.from = [
+              {
+                as: null,
+                expr: {
+                  ast: newQueryObj,
+                },
+              },
+            ];
+          };
+        },
       })
     );
   }
 };
 
-const unary_op = (operator, value, children, nest) => {
+const unary_op = (operator, value, component, children, nest) => {
   const isColumnRef = value.type === EXPR_TYPE.COLUMN_REF;
   const expressionIsValid =
     isColumnRef ||
@@ -84,7 +97,7 @@ const unary_op = (operator, value, children, nest) => {
   );
 };
 
-const where_cmp = (operator, left, right, children, nest) => {
+const where_cmp = (operator, left, right, component, children, nest) => {
   const leftIsColumn = left.type === EXPR_TYPE.COLUMN_REF;
   const rightIsColumn = right.type === EXPR_TYPE.COLUMN_REF;
 
@@ -132,7 +145,7 @@ const where_cmp = (operator, left, right, children, nest) => {
   );
 };
 
-const where_log = (operator, left, right, children, nest) => {
+const where_log = (operator, left, right, component, children, nest) => {
   const expressionIsValid =
     left.type === EXPR_TYPE.BINARY_EXPR && right.type === EXPR_TYPE.BINARY_EXPR;
 
@@ -146,7 +159,7 @@ const where_log = (operator, left, right, children, nest) => {
   select_where(right, children, nest, false);
 };
 
-const where_in = (operator, left, right, children, nest) => {
+const where_in = (operator, left, right, component, children, nest) => {
   const expressionIsValid =
     left.type === EXPR_TYPE.COLUMN_REF && right.type === EXPR_TYPE.EXPR_LIST;
 
@@ -181,7 +194,7 @@ const where_in = (operator, left, right, children, nest) => {
             if (!item) return undefined;
 
             return item.type === QUERY_TYPE.SELECT
-              ? generateQueryComponent(item, nest + 1)
+              ? generateQueryComponent(item, component, nest + 1)
               : undefined;
           })
           .filter((item) => item !== undefined);
@@ -239,7 +252,7 @@ const where_in = (operator, left, right, children, nest) => {
   }
 };
 
-const clause_value = (value, children, nest) => {
+const clause_value = (value, component, children, nest) => {
   children.push(
     generateInputChild({
       onChange: (e) => {
@@ -261,7 +274,7 @@ const cmpOperators = {
 };
 const logicalOperators = { AND: true, OR: true, NOT: true };
 
-const select_where = (where, children, nest, pushWhere = true) => {
+const select_where = (where, component, children, nest, pushWhere = true) => {
   if (pushWhere) {
     children.push(generateSpanChild("WHERE"));
   }
@@ -274,7 +287,7 @@ const select_where = (where, children, nest, pushWhere = true) => {
   );
 
   if (type !== EXPR_TYPE.BINARY_EXPR && type !== EXPR_TYPE.UNARY_EXPR) {
-    clause_value(where, children, nest);
+    clause_value(where, component, children, nest);
   } else {
     // certainly an expression with an operator
 
@@ -293,17 +306,17 @@ const select_where = (where, children, nest, pushWhere = true) => {
     if (type === EXPR_TYPE.BINARY_EXPR) {
       const { left, right } = where;
       if (cmpOperators[operator]) {
-        where_cmp(operator, left, right, children, nest);
+        where_cmp(operator, left, right, component, children, nest);
       } else if (logicalOperators[operator]) {
-        where_log(operator, left, right, children, nest);
+        where_log(operator, left, right, component, children, nest);
       } else if (operator === "IN") {
-        where_in(operator, left, right, children, nest);
+        where_in(operator, left, right, component, children, nest);
       } else {
         console.error(`unhandled operator for SELECT ... WHERE: ${operator}`);
       }
     } else if (type === EXPR_TYPE.UNARY_EXPR) {
       // NOT is the only unary operator in SUPPORTED_OPERATORS, so operator === 'NOT' is surely true
-      unary_op(operator, where, children, nest);
+      unary_op(operator, where, component, children, nest);
     }
   }
 };

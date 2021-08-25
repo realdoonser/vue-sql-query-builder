@@ -36,13 +36,24 @@ export default {
       ],
       queryObj: null,
       queryComponent: null,
+      setAST: null,
       error: null,
     };
   },
   methods: {
     onModelClick(model) {
       try {
-        this.queryObj = parser.astify(parseModelString(model));
+        const newQueryObj = parser.astify(parseModelString(model));
+        if (this.setAST === null) {
+          this.queryObj = newQueryObj;
+        } else {
+          this.setAST(newQueryObj);
+          // this.setAST could have only deep updated, but we want to trigger
+          // a recomputation of this.queryComponent, so we change the queryObj
+          // reference to a new object with copied properties
+          this.queryObj = Object.assign({}, this.queryObj);
+          this.setAST = null;
+        }
         this.error = null;
       } catch (err) {
         this.error = {
@@ -55,7 +66,8 @@ export default {
   },
   watch: {
     queryObj() {
-      this.queryComponent = generateQueryComponent(this.queryObj);
+      this.queryComponent = generateQueryComponent(this.queryObj, this);
+      console.log("recomputed queryComponent");
     },
   },
   render(h) {
@@ -77,16 +89,33 @@ export default {
 
     return (
       <div>
-        <button
-          on-click={() => {
-            console.log(this.queryObj);
-          }}
+        <div
           style={{
+            display: "flex",
+            flexDirection: "row",
             marginBottom: "10px",
           }}
         >
-          Print Data
-        </button>
+          <button
+            on-click={() => {
+              console.log("queryObj", this.queryObj);
+              console.log("setAST", this.setAST);
+            }}
+            style={{
+              marginRight: "5px",
+            }}
+          >
+            Print Data
+          </button>
+          <button
+            on-click={() => {
+              this.setAST = null;
+            }}
+          >
+            Clear Selected Input
+          </button>
+        </div>
+
         <div class="keyword-list">{keywordButtons}</div>
         <pre id="query">{query}</pre>
       </div>

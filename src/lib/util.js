@@ -31,14 +31,22 @@ const generateSpanChild = (text, style, newlineBefore, newlineAfter) => {
   );
 };
 
+const efn = () => {};
+
 const generateInputChild = (
-  { onChange = () => {}, onBlur = () => {} } = {
-    onChange: () => {},
-    onBlur: () => {},
+  { onChange = efn, onFocus = efn, onBlur = efn } = {
+    onChange: efn,
+    onBlur: efn,
+    onFocus: efn,
   }
 ) => {
   return (h, key) => (
-    <input key={key} on-change={onChange} on-blur={onBlur}></input>
+    <input
+      key={key}
+      on-change={onChange}
+      on-focus={onFocus}
+      on-blur={onBlur}
+    ></input>
   );
 };
 

@@ -11,7 +11,7 @@ import { constants } from "../config/constants";
 
 const { QUERY_TYPE, CLAUSE_TYPE, EXPR_TYPE } = constants;
 
-const select = (queryObj, children, nest) => {
+const select = (queryObj, component, children, nest) => {
   const {
     select: { from: handleFromClause, where: handleWhereClause },
   } = clauseHandlers;
@@ -33,12 +33,12 @@ const select = (queryObj, children, nest) => {
 
   const from = queryObj[CLAUSE_TYPE.FROM];
   if (from) {
-    handleFromClause(from, children, nest);
+    handleFromClause(from, queryObj, component, children, nest);
   }
 
   const where = queryObj[CLAUSE_TYPE.WHERE];
   if (where) {
-    handleWhereClause(where, children, nest);
+    handleWhereClause(where, component, children, nest);
   }
 };
 
@@ -46,13 +46,13 @@ const queryHandlers = {
   select,
 };
 
-const generateQueryComponent = (queryObj, nest = 0) => {
+const generateQueryComponent = (queryObj, component, nest = 0) => {
   const { select } = queryHandlers;
 
   const children = [];
   switch (queryObj.type) {
     case QUERY_TYPE.SELECT:
-      select(queryObj, children, nest);
+      select(queryObj, component, children, nest);
       break;
     default:
       throw new Error(`unsupported queryObj type: ${queryObj.type}`);
